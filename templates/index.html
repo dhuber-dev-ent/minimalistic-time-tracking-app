@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Tracking</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 20px; color: #1a1a2e; }
+        h2 { font-size: 1.1rem; margin-bottom: 12px; color: #1a1a2e; }
+
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        /* Week navigation */
+        .week-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .week-nav a {
+            text-decoration: none;
+            color: #4361ee;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 6px;
+            background: #eef1ff;
+            transition: background 0.2s;
+        }
+        .week-nav a:hover { background: #dde3ff; }
+        .week-nav span { font-weight: 600; color: #555; }
+
+        /* Summary row */
+        .summary-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .summary-box {
+            flex: 1;
+            background: #f8f9fc;
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+        }
+        .summary-box .label { font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+        .summary-box .value { font-size: 1.5rem; font-weight: 700; color: #1a1a2e; margin-top: 4px; }
+        .summary-box .value.green { color: #2d9a2d; }
+        .summary-box .value.red { color: #d32f2f; }
+        .summary-box .value.blue { color: #4361ee; }
+
+        /* Week table */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 8px 10px; font-size: 0.8rem; color: #888; text-transform: uppercase; border-bottom: 2px solid #eee; }
+        td { padding: 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+        tr.today td { background: #f0f4ff; }
+        tr:last-child td { border-bottom: none; }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge.public_holiday { background: #fff3e0; color: #e65100; }
+        .badge.personal_holiday { background: #e8f5e9; color: #2e7d32; }
+        .badge.logged { background: #e3f2fd; color: #1565c0; }
+        .badge.missing { background: #fce4ec; color: #c62828; }
+        .badge.future { background: #f5f5f5; color: #999; }
+
+        .hours-bar {
+            width: 100%;
+            height: 6px;
+            background: #eee;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .hours-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .hours-bar-fill.normal { background: #4361ee; }
+        .hours-bar-fill.over { background: #ff9800; }
+        .hours-bar-fill.under { background: #f44336; }
+
+        /* Forms */
+        .forms-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 600px) {
+            .forms-grid { grid-template-columns: 1fr; }
+            .summary-row { flex-direction: column; }
+        }
+        .form-group { margin-bottom: 12px; }
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: #fafafa;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4361ee;
+            background: #fff;
+        }
+        button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button.primary {
+            background: #4361ee;
+            color: #fff;
+        }
+        button.primary:hover { background: #3651d4; }
+        button.danger {
+            background: none;
+            color: #d32f2f;
+            font-size: 0.8rem;
+            padding: 4px 8px;
+        }
+        button.danger:hover { background: #fce4ec; }
+
+        /* Actions column */
+        .actions { white-space: nowrap; }
+    </style>
+</head>
+<body>
+    <h1>⏱ Time Tracking</h1>
+
+    <!-- Week Navigation -->
+    <div class="card">
+        <div class="week-nav">
+            <a href="?week_offset={{ week_offset - 1 }}">← Previous</a>
+            <span>{{ week_start }} – {{ week_end }}</span>
+            <a href="?week_offset={{ week_offset + 1 }}">Next →</a>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-row">
+        <div class="summary-box">
+            <div class="label">Week Logged</div>
+            <div class="value blue">{{ "%.1f"|format(total_hours) }}h</div>
+        </div>
+        <div class="summary-box">
+            <div class="label">Week Target</div>
+            <div class="value">{{ "%.1f"|format(total_target) }}h</div>
+        </div>
+        <div class="summary-box">
+            <div class="label">Week Balance</div>
+            {% set balance = total_hours - total_target %}
+            <div class="value {{ 'green' if balance >= 0 else 'red' }}">
+                {{ "%+.1f"|format(balance) }}h
+            </div>
+        </div>
+        <div class="summary-box">
+            <div class="label">{{ month_name }}</div>
+            <div class="value blue">{{ "%.1f"|format(month_logged) }} / {{ "%.0f"|format(month_target) }}h</div>
+        </div>
+        <div class="summary-box">
+            <div class="label">Avg Home Office / Week</div>
+            <div class="value">{{ "%.1f"|format(avg_ho_per_week) }} days</div>
+        </div>
+    </div>
+
+    <!-- Week Overview -->
+    <div class="card">
+        <h2>Week Overview</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Hours</th>
+                    <th>HO</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for day in week_data %}
+                <tr class="{{ 'today' if day.is_today else '' }}">
+                    <td><strong>{{ day.day_name }}</strong></td>
+                    <td>{{ day.date }}</td>
+                    <td>
+                        {% if day.status == 'logged' %}
+                            {{ day.start_time }} – {{ day.end_time }}
+                        {% else %}
+                            –
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if day.status == 'logged' %}
+                            <strong>{{ "%.1f"|format(day.hours) }}h</strong>
+                            <div class="hours-bar">
+                                {% set pct = (day.hours / day.target * 100) if day.target > 0 else 0 %}
+                                {% set bar_class = 'over' if pct > 100 else ('normal' if pct >= 80 else 'under') %}
+                                <div class="hours-bar-fill {{ bar_class }}" style="width: {{ [pct, 100]|min }}%"></div>
+                            </div>
+                        {% else %}
+                            –
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if day.status == 'logged' and day.homeoffice %}
+                            🏠
+                        {% elif day.status == 'logged' %}
+                            🏢
+                        {% else %}
+                            –
+                        {% endif %}
+                    </td>
+                    <td>{{ day.description }}</td>
+                    <td>
+                        {% if day.status == 'public_holiday' %}
+                            <span class="badge public_holiday">🎉 {{ day.status_label }}</span>
+                        {% elif day.status == 'personal_holiday' %}
+                            <span class="badge personal_holiday">🌴 {{ day.status_label }}</span>
+                        {% elif day.status == 'logged' %}
+                            <span class="badge logged">✓ Logged</span>
+                        {% elif day.status == 'missing' %}
+                            <span class="badge missing">✗ Missing</span>
+                        {% elif day.status == 'future' %}
+                            <span class="badge future">Upcoming</span>
+                        {% endif %}
+                    </td>
+                    <td class="actions">
+                        {% if day.status == 'logged' %}
+                        <form method="POST" action="/delete_hours" style="display:inline">
+                            <input type="hidden" name="date" value="{{ day.date }}">
+                            <input type="hidden" name="week_offset" value="{{ week_offset }}">
+                            <button type="submit" class="danger" title="Delete">✕</button>
+                        </form>
+                        {% endif %}
+                        {% if day.status == 'personal_holiday' %}
+                        <form method="POST" action="/delete_holiday" style="display:inline">
+                            <input type="hidden" name="start_date" value="{{ day.date }}">
+                            <input type="hidden" name="week_offset" value="{{ week_offset }}">
+                            <button type="submit" class="danger" title="Delete">✕</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Forms -->
+    <div class="forms-grid">
+        <div class="card">
+            <h2>Add Working Hours</h2>
+            <form method="POST" action="/add_hours">
+                <input type="hidden" name="week_offset" value="{{ week_offset }}">
+                <div class="form-group">
+                    <label for="wh_date">Date</label>
+                    <input type="date" id="wh_date" name="date" value="{{ today }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="wh_start">Start Time</label>
+                    <input type="time" id="wh_start" name="start_time" value="08:00" required>
+                </div>
+                <div class="form-group">
+                    <label for="wh_end">End Time</label>
+                    <input type="time" id="wh_end" name="end_time" value="17:00" required>
+                </div>
+                <div class="form-group">
+                    <label for="wh_break">Break (hours)</label>
+                    <input type="number" id="wh_break" name="break_hours" step="0.25" min="0" max="8" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="wh_ho" name="homeoffice" style="width:auto; margin-right:6px;">Home Office
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="wh_desc">Description</label>
+                    <input type="text" id="wh_desc" name="description" placeholder="e.g. Project work">
+                </div>
+                <button type="submit" class="primary">Add Hours</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Add Holiday / Absence</h2>
+            <form method="POST" action="/add_holiday">
+                <input type="hidden" name="week_offset" value="{{ week_offset }}">
+                <div class="form-group">
+                    <label for="h_start">Start Date</label>
+                    <input type="date" id="h_start" name="start_date" value="{{ today }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="h_end">End Date</label>
+                    <input type="date" id="h_end" name="end_date" value="{{ today }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="h_type">Type</label>
+                    <select id="h_type" name="type">
+                        <option value="Vacation">Vacation</option>
+                        <option value="Sick">Sick Day</option>
+                        <option value="Comp">Comp Time</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="h_desc">Description</label>
+                    <input type="text" id="h_desc" name="description" placeholder="e.g. Family event">
+                </div>
+                <button type="submit" class="primary">Add Holiday</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

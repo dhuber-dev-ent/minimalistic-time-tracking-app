@@ -15,4 +15,4 @@ if exist "%LOCKFILE%" (
 )
 
 echo %TODAY%>"%LOCKFILE%"
-"C:\Program Files\Anaconda3\python.exe" start.py
+"C:\Users\HUD2FH\.conda\envs\analysis\python.exe" start.py

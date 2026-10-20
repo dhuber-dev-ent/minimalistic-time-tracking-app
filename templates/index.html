@@ -172,18 +172,22 @@
     <!-- Summary -->
     <div class="summary-row">
         <div class="summary-box">
-            <div class="label">Week Logged</div>
-            <div class="value blue">{{ "%.1f"|format(total_hours) }}h</div>
-        </div>
-        <div class="summary-box">
-            <div class="label">Week Target</div>
-            <div class="value">{{ "%.1f"|format(total_target) }}h</div>
-        </div>
-        <div class="summary-box">
             <div class="label">Week Balance</div>
             {% set balance = total_hours - total_target %}
             <div class="value {{ 'green' if balance >= 0 else 'red' }}">
                 {{ "%+.1f"|format(balance) }}h
+            </div>
+        </div>
+        <div class="summary-box">
+            <div class="label">All-Time Balance</div>
+            <div class="value {{ 'green' if alltime_balance >= 0 else 'red' }}">
+                {{ "%+.1f"|format(alltime_balance) }}h
+            </div>
+        </div>
+        <div class="summary-box">
+            <div class="label">All-Time Balance / Week</div>
+            <div class="value {{ 'green' if alltime_balance_per_week >= 0 else 'red' }}">
+                {{ "%+.1f"|format(alltime_balance_per_week) }}h
             </div>
         </div>
         <div class="summary-box">

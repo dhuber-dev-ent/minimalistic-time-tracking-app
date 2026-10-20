@@ -214,6 +214,16 @@ def index():
         if entry:
             month_logged += entry["hours"]
 
+    # All-time balance: only logged days count
+    alltime_balance = 0.0
+    for ds, entry in working_hours.items():
+        alltime_balance += entry["hours"]
+        if (date.fromisoformat(ds).weekday() < 5
+                and ds not in public_holidays and ds not in personal_holidays):
+            alltime_balance -= STANDARD_HOURS_PER_DAY
+    logged_weeks = {date.fromisoformat(ds).isocalendar()[:2] for ds in working_hours}
+    alltime_balance_per_week = alltime_balance / len(logged_weeks) if logged_weeks else 0.0
+
     week_start = week_dates[0].strftime("%d.%m.%Y")
     week_end = week_dates[-1].strftime("%d.%m.%Y")
 
@@ -249,6 +259,8 @@ def index():
         month_logged=month_logged,
         today=today.isoformat(),
         avg_ho_per_week=avg_ho_per_week,
+        alltime_balance=alltime_balance,
+        alltime_balance_per_week=alltime_balance_per_week,
     )
 
 
